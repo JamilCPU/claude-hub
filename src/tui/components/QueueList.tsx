@@ -1,29 +1,7 @@
 import React from "react";
 import { Box, Text } from "ink";
 import { ToolCall } from "../../types.js";
-
-const AGENT_COLORS = [
-  "cyan",
-  "magenta",
-  "yellow",
-  "blue",
-  "green",
-  "red",
-  "white",
-] as const;
-
-const agentColorMap = new Map<string, (typeof AGENT_COLORS)[number]>();
-let colorIndex = 0;
-
-function getAgentColor(
-  agentName: string
-): (typeof AGENT_COLORS)[number] {
-  if (!agentColorMap.has(agentName)) {
-    agentColorMap.set(agentName, AGENT_COLORS[colorIndex % AGENT_COLORS.length]!);
-    colorIndex++;
-  }
-  return agentColorMap.get(agentName)!;
-}
+import { getAgentColor } from "../agentColors.js";
 
 function elapsed(timestamp: number): string {
   const secs = Math.floor((Date.now() - timestamp) / 1000);
@@ -31,12 +9,20 @@ function elapsed(timestamp: number): string {
   return `${Math.floor(secs / 60)}m${secs % 60}s`;
 }
 
+function remaining(expiresAt: number, now: number): { text: string; urgent: boolean } {
+  const secs = Math.max(0, Math.floor((expiresAt - now) / 1000));
+  const urgent = secs < 30;
+  if (secs < 60) return { text: `${secs}s`, urgent };
+  return { text: `${Math.floor(secs / 60)}m${secs % 60}s`, urgent };
+}
+
 interface Props {
   calls: ToolCall[];
   selectedIndex: number;
+  now: number; // passed from App's clock so all rows update together
 }
 
-export function QueueList({ calls, selectedIndex }: Props) {
+export function QueueList({ calls, selectedIndex, now }: Props) {
   if (calls.length === 0) {
     return (
       <Box flexGrow={1} alignItems="center" justifyContent="center">
@@ -50,6 +36,8 @@ export function QueueList({ calls, selectedIndex }: Props) {
       {calls.map((call, idx) => {
         const isSelected = idx === selectedIndex;
         const color = getAgentColor(call.agentName);
+        const timer = remaining(call.expiresAt, now);
+
         return (
           <Box
             key={call.callId}
@@ -67,6 +55,10 @@ export function QueueList({ calls, selectedIndex }: Props) {
               {call.toolName}
             </Text>
             <Text dimColor> · {elapsed(call.timestamp)} ago</Text>
+            <Text> </Text>
+            <Text color={timer.urgent ? "red" : "gray"}>
+              ⏱{timer.text}
+            </Text>
           </Box>
         );
       })}
