@@ -3,3 +3,17 @@ dist/
 *.js.map
 .env
 *.claude-hub-backup
+
+# secrets and local data
+.env.*
+!.env.example
+*.keys
+*.db
+*.sqlite
+*.sqlite3
+
+# editor / OS
+build/
+.vs/
+.idea/
+.DS_Store
